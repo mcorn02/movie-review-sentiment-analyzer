@@ -121,3 +121,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Generated data files
+movie_details.json
+
+# Planning documents
+FEATURE_PLAN.md
