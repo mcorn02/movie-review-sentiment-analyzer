@@ -1,0 +1,12 @@
+# Product Reviewer Requirements
+pandas>=2.0.0
+nltk>=3.8
+sentence-transformers>=2.2.0
+transformers>=4.30.0
+torch>=2.0.0
+numpy<2.0  # PyTorch compatibility - requires NumPy 1.x
+openai>=1.0.0
+gradio>=4.0.0
+kagglehub>=0.2.0
+python-dotenv>=1.0.0
+scrapy>=2.11.0
