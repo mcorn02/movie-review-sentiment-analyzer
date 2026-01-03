@@ -124,15 +124,6 @@ class IMDBReviewSpider(scrapy.Spider):
                 except (ValueError, AttributeError):
                     pass
             
-            # Extract review title - try multiple selectors
-            review_title = (
-                review_container.css('a.title::text').get() or
-                review_container.css('h2 a::text').get() or
-                review_container.xpath('.//a[contains(@class, "title")]/text()').get()
-            )
-            if review_title:
-                review_title = review_title.strip()
-            
             # Extract review text - try multiple selectors
             review_text = None
             # Try the main selector first (IMDB's standard structure)
@@ -182,15 +173,6 @@ class IMDBReviewSpider(scrapy.Spider):
             if review_text:
                 review_text = review_text.strip()
             
-            # Extract reviewer name - try multiple selectors
-            reviewer = (
-                review_container.css('span.display-name-link a::text').get() or
-                review_container.css('span[class*="display-name"] a::text').get() or
-                review_container.xpath('.//span[contains(@class, "name")]//a/text()').get()
-            )
-            if reviewer:
-                reviewer = reviewer.strip()
-            
             # Extract review date - try multiple selectors
             review_date = (
                 review_container.css('span.review-date::text').get() or
@@ -202,7 +184,7 @@ class IMDBReviewSpider(scrapy.Spider):
             
             # Debug first few reviews (after all extractions)
             if idx < 2:
-                self.logger.debug(f"Review {idx}: text_length={len(review_text) if review_text else 0}, rating={rating}, reviewer={reviewer}, has_text={bool(review_text)}")
+                self.logger.debug(f"Review {idx}: text_length={len(review_text) if review_text else 0}, rating={rating}, has_text={bool(review_text)}")
             
             # Only yield if we have review text
             if review_text and len(review_text.strip()) > 0:
@@ -210,14 +192,12 @@ class IMDBReviewSpider(scrapy.Spider):
                 review_item = {
                     'movie_id': movie_id,
                     'movie_title': movie_title,
-                    'review_title': review_title,
                     'review_text': review_text,
                     'rating': rating,
-                    'reviewer': reviewer,
                     'review_date': review_date,
                     'source': 'imdb'
                 }
-                self.logger.info(f"Yielding review {self.reviews_collected}/{self.max_reviews} - Rating: {rating}, Reviewer: {reviewer}, Text length: {len(review_text)}")
+                self.logger.info(f"Yielding review {self.reviews_collected}/{self.max_reviews} - Rating: {rating}, Text length: {len(review_text)}")
                 yield review_item
             else:
                 if idx < 3:
