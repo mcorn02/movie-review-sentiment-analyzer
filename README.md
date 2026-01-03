@@ -46,7 +46,7 @@ pip install -r requirements.txt
 
 Launch the Gradio web interface:
 ```bash
-python main.py --web
+python app/main.py --web
 ```
 
 This will start a local web server where you can:
@@ -59,31 +59,31 @@ This will start a local web server where you can:
 
 **Analyze a single review:**
 ```bash
-python main.py --review "This movie had great acting but a weak plot."
+python -m app.main --review "This movie had great acting but a weak plot."
 ```
 
 **Analyze from a file:**
 ```bash
-python main.py --file review.txt
+python -m app.main --file review.txt
 ```
 
 **Test with dataset:**
 ```bash
 # Download from Kaggle and test with 5 reviews
-python main.py --dataset-kaggle --test 5
+python -m app.main --dataset-kaggle --test 5
 
 # Use local dataset file
-python main.py --dataset path/to/IMDB_Dataset.csv --test 5
+python -m app.main --dataset path/to/IMDB_Dataset.csv --test 5
 ```
 
 **Custom aspects:**
 ```bash
-python main.py --review "..." --aspects acting plot soundtrack
+python -m app.main --review "..." --aspects acting plot soundtrack
 ```
 
 **Choose method:**
 ```bash
-python main.py --review "..." --method "Zero-shot NLI (local)"
+python -m app.main --review "..." --method "Zero-shot NLI (local)"
 ```
 
 ### Command-Line Options
@@ -101,13 +101,20 @@ python main.py --review "..." --method "Zero-shot NLI (local)"
 
 ```
 product_reviewer/
-├── __init__.py
-├── main.py              # Entry point with CLI and Gradio interface
-├── config.py            # Configuration and API key management
-├── preprocessing.py     # Text cleaning and sentence tokenization
-├── sentiment_analyzer.py # Core sentiment analysis functions
-├── requirements.txt     # Python dependencies
-└── README.md           # This file
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # Entry point with CLI and Gradio interface
+│   ├── config.py            # Configuration and API key management
+│   ├── preprocessing.py     # Text cleaning and sentence tokenization
+│   ├── sentiment_analyzer.py # Core sentiment analysis functions
+│   ├── database.py          # Database operations
+│   ├── imdb_scraper.py      # IMDB scraping spider
+│   └── run_scrapy.py         # Scrapy runner script
+├── data/                    # Data files
+├── evaluation/               # Evaluation scripts
+├── inference/                # Inference scripts
+├── requirements.txt          # Python dependencies
+└── README.md                 # This file
 ```
 
 ## Methods Comparison
@@ -151,6 +158,10 @@ You can specify custom aspects using the `--aspects` flag or in the web interfac
 **NLTK data missing:**
 - The application will automatically download required NLTK data on first run
 - If download fails, manually run: `python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')"`
+
+**Import errors after reorganization:**
+- If you encounter import errors, ensure you're running from the project root directory
+- Use `python -m app.main` to run the application (required for proper package imports)
 
 **Model download issues:**
 - First run will download models (~500MB for sentence-transformers, ~1.6GB for BART)
