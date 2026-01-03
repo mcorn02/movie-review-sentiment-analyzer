@@ -4,7 +4,7 @@ Script to run IMDB review scraping using Scrapy.
 import logging
 import os
 from scrapy.crawler import CrawlerProcess
-from imdb_scraper import IMDBReviewSpider
+from .imdb_scraper import IMDBReviewSpider
 
 # Configure logging
 logging.basicConfig(

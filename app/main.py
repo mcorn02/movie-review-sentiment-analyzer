@@ -16,8 +16,8 @@ try:
 except ImportError:
     kagglehub = None
 
-from config import DEFAULT_ASPECTS
-from sentiment_analyzer import analyze
+from .config import DEFAULT_ASPECTS
+from .sentiment_analyzer import analyze
 
 
 def load_dataset_kaggle(dataset_name: str = "lakshmi25npathi/imdb-dataset-of-50k-movie-reviews"):

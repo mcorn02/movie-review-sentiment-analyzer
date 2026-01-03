@@ -9,7 +9,7 @@ from sentence_transformers import SentenceTransformer, util
 from transformers import pipeline
 from openai import OpenAI
 
-from config import (
+from .config import (
     DEFAULT_ASPECTS,
     DEFAULT_NLI_THRESHOLD,
     DEFAULT_ZSC_THRESHOLD,
@@ -19,7 +19,7 @@ from config import (
     OPENAI_MAX_TOKENS,
     get_openai_api_key
 )
-from preprocessing import clean_text, get_sentences
+from .preprocessing import clean_text, get_sentences
 
 # Initialize models (lazy loading)
 _sentence_model = None
