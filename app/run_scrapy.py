@@ -6,7 +6,7 @@ import os
 from scrapy.crawler import CrawlerProcess
 from .imdb_scraper import IMDBReviewSpider
 
-# TODO: get rid of this web scraping
+# TODO: get rid of this web scraping workflow 
 
 # Configure logging
 logging.basicConfig(
