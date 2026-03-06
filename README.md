@@ -2,19 +2,11 @@
 
 A Python application for performing aspect-based sentiment analysis on movie reviews using two methods:
 - **LLM (OpenAI)**: Uses GPT-4o-mini for sentiment classification
-- **Zero-shot NLI (local)**: Uses Facebook BART-large-MNLI model running locally
-
-## Features
-
-- Analyze sentiment for multiple aspects (acting, plot, pacing, soundtrack, direction, cinematography, cast)
-- Two analysis methods: OpenAI LLM or local zero-shot NLI
-- Web interface via Gradio
-- Command-line interface for batch processing
-- Support for Kaggle dataset download or local CSV files
+- **Zero-shot NLI (local)**: Uses `typeform/distilbert-base-uncased-mnli` running locally
 
 ## Installation
 
-1. Create a virtual environment (recommended):
+1. Create a virtual environment:
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -26,153 +18,95 @@ pip install -r requirements.txt
 ```
 
 3. Set up your OpenAI API key (required for LLM method):
+```bash
+export OPENAI_API_KEY=your_api_key_here
+```
+Or create a `.env` file in the project root:
+```
+OPENAI_API_KEY=your_api_key_here
+```
 
-   **Option 1: Environment variable (recommended)**
-   ```bash
-   export OPENAI_API_KEY=your_api_key_here
-   ```
-
-   **Option 2: .env file**
-   Create a `.env` file in the project root:
-   ```
-   OPENAI_API_KEY=your_api_key_here
-   ```
-
-   Get your API key from: https://platform.openai.com/api-keys
+> **First run:** Models will be downloaded automatically (~100MB for sentence-transformers, ~500MB for the NLI model).
 
 ## Usage
 
 ### Web Interface
 
-Launch the Gradio web interface:
 ```bash
-python app/main.py --web
+python -m app.main --web
 ```
-
-This will start a local web server where you can:
-- Paste movie reviews
-- Select aspects to analyze
-- Choose between LLM or NLI methods
-- View results in a table
 
 ### Command-Line Interface
 
-**Analyze a single review:**
 ```bash
+# Analyze a single review
 python -m app.main --review "This movie had great acting but a weak plot."
-```
 
-**Analyze from a file:**
-```bash
+# Analyze from a file
 python -m app.main --file review.txt
-```
 
-**Test with dataset:**
-```bash
-# Download from Kaggle and test with 5 reviews
+# Use the local NLI method instead of OpenAI
+python -m app.main --review "..." --method "Zero-shot NLI (local)"
+
+# Custom aspects
+python -m app.main --review "..." --aspects acting plot soundtrack
+
+# Test with dataset (first N reviews)
 python -m app.main --dataset-kaggle --test 5
-
-# Use local dataset file
 python -m app.main --dataset path/to/IMDB_Dataset.csv --test 5
 ```
 
-**Custom aspects:**
-```bash
-python -m app.main --review "..." --aspects acting plot soundtrack
-```
+### CLI Options
 
-**Choose method:**
-```bash
-python -m app.main --review "..." --method "Zero-shot NLI (local)"
-```
+| Flag | Description |
+|------|-------------|
+| `--web` | Launch Gradio web interface |
+| `--review TEXT` | Review text to analyze |
+| `--file PATH` | Path to file containing review text |
+| `--dataset PATH` | Path to a local CSV dataset |
+| `--dataset-kaggle` | Download IMDB dataset from Kaggle |
+| `--aspects A B ...` | Custom aspects to analyze |
+| `--method METHOD` | `"LLM (OpenAI)"` or `"Zero-shot NLI (local)"` |
+| `--test N` | Analyze first N reviews from a dataset |
 
-### Command-Line Options
+## Methods
 
-- `--web`: Launch Gradio web interface
-- `--review TEXT`: Review text to analyze
-- `--file PATH`: Path to file containing review text
-- `--dataset PATH`: Path to IMDB dataset CSV file
-- `--dataset-kaggle`: Download dataset from Kaggle (requires kagglehub)
-- `--aspects ASPECT1 ASPECT2 ...`: Custom aspects to analyze
-- `--method METHOD`: Analysis method ("LLM (OpenAI)" or "Zero-shot NLI (local)")
-- `--test N`: Test with first N reviews from dataset
-
-## Project Structure
-
-```
-product_reviewer/
-├── app/
-│   ├── __init__.py
-│   ├── main.py              # Entry point with CLI and Gradio interface
-│   ├── config.py            # Configuration and API key management
-│   ├── preprocessing.py     # Text cleaning and sentence tokenization
-│   ├── sentiment_analyzer.py # Core sentiment analysis functions
-│   ├── database.py          # Database operations
-│   ├── imdb_scraper.py      # IMDB scraping spider
-│   └── run_scrapy.py         # Scrapy runner script
-├── data/                    # Data files
-├── evaluation/               # Evaluation scripts
-├── inference/                # Inference scripts
-├── requirements.txt          # Python dependencies
-└── README.md                 # This file
-```
-
-## Methods Comparison
-
-### LLM (OpenAI)
-- **Pros**: High accuracy, understands context well, fast API calls
-- **Cons**: Requires API key, costs money per request, requires internet
-- **Best for**: Production use, high accuracy requirements
-
-### Zero-shot NLI (local)
-- **Pros**: Free, works offline, no API limits, privacy-preserving
-- **Cons**: Slower (runs locally), requires more memory, slightly lower accuracy
-- **Best for**: Development, privacy-sensitive applications, offline use
-
-## Dataset
-
-The application supports the IMDB Dataset of 50K Movie Reviews from Kaggle:
-- Dataset: `lakshmi25npathi/imdb-dataset-of-50k-movie-reviews`
-- Automatic download via `kagglehub` (requires Kaggle credentials)
-- Manual CSV file path also supported
+| | LLM (OpenAI) | Zero-shot NLI (local) |
+|--|--|--|
+| **Accuracy** | Higher | Moderate |
+| **Speed** | Fast (API) | Slower (local inference) |
+| **Cost** | Per-request API cost | Free |
+| **Privacy** | Review sent to OpenAI | Fully local |
+| **Internet** | Required | Not required |
 
 ## Default Aspects
 
-The application analyzes these aspects by default:
-- acting
-- plot
-- pacing
-- soundtrack
-- direction
-- cinematography
-- cast
+Defined in `app/config.py`:
+- `acting_performances`
+- `story_plot`
+- `pacing`
+- `visuals`
+- `directing`
+- `writing`
 
-You can specify custom aspects using the `--aspects` flag or in the web interface.
+## Evaluation
+
+Run inference on the gold dataset and evaluate:
+
+```bash
+# Generate predictions (saves to predictions.csv, checkpoints every 10 reviews)
+python inference/run_inference_on_gold.py
+
+# Compute macro F1 per aspect
+python evaluation/final_sentiment_analysis.py
+```
+
+Gold dataset: `data/gold_dataset_aspect_level - gold_dataset_aspect_level.csv`
 
 ## Troubleshooting
 
-**OpenAI API key not found:**
-- Ensure `OPENAI_API_KEY` is set as environment variable or in `.env` file
-- Check that `.env` file is in the project root directory
+**OpenAI API key not found:** Ensure `OPENAI_API_KEY` is set as an environment variable or in a `.env` file in the project root.
 
-**NLTK data missing:**
-- The application will automatically download required NLTK data on first run
-- If download fails, manually run: `python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')"`
+**Import errors:** Always run from the project root using `python -m app.main` — direct invocation (`python app/main.py`) breaks package imports.
 
-**Import errors after reorganization:**
-- If you encounter import errors, ensure you're running from the project root directory
-- Use `python -m app.main` to run the application (required for proper package imports)
-
-**Model download issues:**
-- First run will download models (~500MB for sentence-transformers, ~1.6GB for BART)
-- Ensure sufficient disk space and internet connection
-- Models are cached for subsequent runs
-
-**Kaggle dataset download:**
-- Requires `kagglehub` package (included in requirements.txt)
-- May require Kaggle API credentials (see kagglehub documentation)
-- Fallback to manual dataset path if download fails
-
-## License
-
-Add your license information here.
+**NLTK data missing:** Run `python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')"` manually.

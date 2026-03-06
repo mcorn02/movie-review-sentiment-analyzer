@@ -13,7 +13,7 @@ DEFAULT_ASPECTS = [
     "story_plot",
     "pacing",
     "visuals",
-    "direction",
+    "directing",
     "writing"
 ]
 
@@ -25,7 +25,7 @@ DEFAULT_ZSC_THRESHOLD = 0.6
 SENTENCE_TRANSFORMER_MODEL = "all-MiniLM-L6-v2"
 ZERO_SHOT_MODEL = "typeform/distilbert-base-uncased-mnli"
 OPENAI_MODEL = "gpt-4o-mini"
-OPENAI_MAX_TOKENS = 180
+OPENAI_MAX_TOKENS = 350
 
 
 def get_openai_api_key():
