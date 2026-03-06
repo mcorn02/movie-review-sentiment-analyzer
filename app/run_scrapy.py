@@ -6,6 +6,8 @@ import os
 from scrapy.crawler import CrawlerProcess
 from .imdb_scraper import IMDBReviewSpider
 
+# TODO: get rid of this web scraping
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
