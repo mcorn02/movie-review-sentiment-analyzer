@@ -1,6 +1,7 @@
 """
 Configuration management and API key loading.
 """
+# fmt: skip
 import os
 from dotenv import load_dotenv
 
