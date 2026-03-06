@@ -134,7 +134,7 @@ def nli_aspect_sentiment(review: str, aspects: list = None, threshold: float = N
     if threshold is None:
         threshold = DEFAULT_NLI_THRESHOLD
         
-    sentiments = ["positive", "negative", "neutral"]
+    sentiments = ["positive", "negative", "not_mentioned"]
     rows = []
     
     # Initialize cleaned before try block to ensure it's always defined
@@ -183,15 +183,16 @@ def nli_aspect_sentiment(review: str, aspects: list = None, threshold: float = N
     return rows
 
 
-def llm_aspect_sentiment(review: str, aspects: list = None, max_tokens: int = None):
+def llm_aspect_sentiment(review: str, aspects: list = None, max_tokens: int = None, domain: str = "product"):
     """
     Analyze aspect-based sentiment using OpenAI LLM.
-    
+
     Args:
         review: Review text to analyze
         aspects: List of aspects to analyze (defaults to DEFAULT_ASPECTS)
         max_tokens: Maximum tokens for response (defaults to OPENAI_MAX_TOKENS)
-        
+        domain: The domain/type of review (e.g. "movie", "restaurant", "software")
+
     Returns:
         List of dictionaries with aspect and sentiment
     """
@@ -199,13 +200,16 @@ def llm_aspect_sentiment(review: str, aspects: list = None, max_tokens: int = No
         aspects = DEFAULT_ASPECTS
     if max_tokens is None:
         max_tokens = OPENAI_MAX_TOKENS
-        
+
     client = _get_openai_client()
-    
+
     prompt = f"""
-You are analyzing a MOVIE REVIEW for aspect-based sentiment.
+You are analyzing a {domain} review for aspect-based sentiment.
 Aspects: {", ".join(aspects)}.
-For each aspect, return one of: "positive","negative","neutral","not_mentioned".
+For each aspect, return one of: "positive","negative","not_mentioned".
+- "positive": the review expresses a favorable opinion about this aspect
+- "negative": the review expresses an unfavorable opinion about this aspect
+- "not_mentioned": the review does not discuss this aspect at all
 Return STRICT JSON ONLY as an array of objects:
 [{{"aspect":"acting","sentiment":"positive"}}, ...]
 Review:
@@ -239,15 +243,16 @@ Review:
             ) from e
 
 
-def analyze(review: str, aspects: list = None, method: str = "LLM (OpenAI)"):
+def analyze(review: str, aspects: list = None, method: str = "LLM (OpenAI)", domain: str = "product"):
     """
     Analyze review sentiment for given aspects using specified method.
-    
+
     Args:
         review: Review text to analyze
         aspects: List of aspects to analyze (defaults to DEFAULT_ASPECTS)
         method: Analysis method - "LLM (OpenAI)" or "Zero-shot NLI (local)"
-        
+        domain: The domain/type of review (e.g. "movie", "restaurant", "software")
+
     Returns:
         pandas DataFrame with aspect and sentiment columns
     """
@@ -259,7 +264,7 @@ def analyze(review: str, aspects: list = None, method: str = "LLM (OpenAI)"):
             aspects = DEFAULT_ASPECTS
 
         if method == "LLM (OpenAI)":
-            data = llm_aspect_sentiment(review, aspects)
+            data = llm_aspect_sentiment(review, aspects, domain=domain)
         else:  # Zero-shot NLI
             data = nli_aspect_sentiment(review, aspects)
 
