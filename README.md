@@ -30,11 +30,15 @@ OPENAI_API_KEY=your_api_key_here
 
 ## Usage
 
-### Web Interface
+### API Server
 
 ```bash
-python -m app.main --web
+uvicorn api.main:app --reload
 ```
+
+All API routes are served under the `/api` prefix (e.g. `/api/health`, `/api/report/imdb`).
+
+In production, if a `frontend/dist` directory is present, the server will also serve the compiled frontend and handle client-side routing via an SPA fallback.
 
 ### Command-Line Interface
 
@@ -60,7 +64,6 @@ python -m app.main --dataset path/to/IMDB_Dataset.csv --test 5
 
 | Flag | Description |
 |------|-------------|
-| `--web` | Launch Gradio web interface |
 | `--review TEXT` | Review text to analyze |
 | `--file PATH` | Path to file containing review text |
 | `--dataset PATH` | Path to a local CSV dataset |
@@ -68,6 +71,22 @@ python -m app.main --dataset path/to/IMDB_Dataset.csv --test 5
 | `--aspects A B ...` | Custom aspects to analyze |
 | `--method METHOD` | `"LLM (OpenAI)"` or `"Zero-shot NLI (local)"` |
 | `--test N` | Analyze first N reviews from a dataset |
+
+### IMDB Report Endpoint
+
+`POST /api/report/imdb` accepts an IMDB movie URL, scrapes reviews, runs aspect-based sentiment analysis, and streams progress and results back as Server-Sent Events (SSE).
+
+Stages emitted: `scraping` → `analyzing` → `generating` → `done`
+
+**Request body:**
+```json
+{
+  "imdb_url": "https://www.imdb.com/title/tt1375666/",
+  "aspects": ["acting_performances", "story_plot"]
+}
+```
+
+The `aspects` field is optional; omitting it uses the default aspects defined in `app/config.py`.
 
 ## Methods
 
@@ -110,3 +129,5 @@ Gold dataset: `data/gold_dataset_aspect_level - gold_dataset_aspect_level.csv`
 **Import errors:** Always run from the project root using `python -m app.main` — direct invocation (`python app/main.py`) breaks package imports.
 
 **NLTK data missing:** Run `python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')"` manually.
+
+**IMDB scraper returning 403:** IMDB may be rate-limiting requests. Wait a moment and try again.

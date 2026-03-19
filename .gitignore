@@ -6,6 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
+# Claude 
+CLAUDE.md
+.claude/
+agents/
+skills/
+
+# Cursor
+.cursor/
+
 # Distribution / packaging
 .Python
 build/
@@ -98,6 +107,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv/
 env/
 venv/
 ENV/
@@ -124,6 +134,12 @@ dmypy.json
 
 # Generated data files
 movie_details.json
+predictions.csv
 
 # Planning documents
 FEATURE_PLAN.md
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
