@@ -17,7 +17,18 @@
       "Bash(npx tsc:*)",
       "Bash(npm run:*)",
       "Bash(python3 -c \"from app.scraper_service import extract_movie_id, scrape_imdb_reviews; print\\(''scraper_service OK''\\); print\\(extract_movie_id\\(''https://www.imdb.com/title/tt1375666/reviews/''\\)\\)\")",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git stash:*)",
+      "Bash(git pull:*)",
+      "Bash(find /Users/michaelcorn/Desktop/product_reviewer -type f -name .env* -o -name *.pem -o -name *.key -o -name *.cert -o -name *.p12 -o -name *.pfx)",
+      "Bash(find . -type f \\\\\\(-name .env* -o -name *secret* -o -name *credential* -o -name *password* \\\\\\))",
+      "Bash(find /Users/michaelcorn/Desktop/product_reviewer -type f \\\\\\(-name *.json -o -name *.yaml -o -name *.yml \\\\\\) ! -path */venv/* ! -path */.git/* ! -path */node_modules/* ! -path */dist/*)",
+      "Bash(git check-ignore:*)",
+      "Bash(grep -r \"password\\\\|pwd\\\\|passwd\" /Users/michaelcorn/Desktop/product_reviewer --include=*.py --include=*.js --include=*.ts --exclude-dir=venv --exclude-dir=node_modules --exclude-dir=.git)",
+      "Bash(find /Users/michaelcorn/Desktop/product_reviewer -type f \\\\\\(-name *credentials* -o -name *secret* -o -name *token* -o -name *auth* \\\\\\) ! -path */venv/* ! -path */.git/* ! -path */node_modules/*)",
+      "Bash(git rm:*)"
     ]
   }
 }

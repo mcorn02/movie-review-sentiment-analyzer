@@ -1,8 +1,9 @@
 # Product Reviewer - Aspect-Based Sentiment Analysis
 
-A Python application for performing aspect-based sentiment analysis on movie reviews using two methods:
-- **LLM (OpenAI)**: Uses GPT-4o-mini for sentiment classification
-- **Zero-shot NLI (local)**: Uses `typeform/distilbert-base-uncased-mnli` running locally
+A web application that scrapes IMDB reviews for any movie and generates a structured sentiment report broken down by aspect (acting, plot, pacing, etc.), powered by two analysis methods:
+
+- **LLM (OpenAI)**: GPT-4o-mini via API — higher accuracy, costs money
+- **Zero-shot NLI (local)**: `typeform/distilbert-base-uncased-mnli` — free, offline, privacy-preserving
 
 ## Installation
 
@@ -17,7 +18,12 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Set up your OpenAI API key (required for LLM method):
+3. Install frontend dependencies and build:
+```bash
+cd frontend && npm install && npm run build
+```
+
+4. Set up your OpenAI API key (required for LLM method):
 ```bash
 export OPENAI_API_KEY=your_api_key_here
 ```
@@ -26,19 +32,44 @@ Or create a `.env` file in the project root:
 OPENAI_API_KEY=your_api_key_here
 ```
 
-> **First run:** Models will be downloaded automatically (~100MB for sentence-transformers, ~500MB for the NLI model).
+> **First run:** Models will be downloaded automatically (~500MB for sentence-transformers, ~1.6GB for the NLI model).
 
 ## Usage
 
-### API Server
+### Web App (main workflow)
 
 ```bash
-uvicorn api.main:app --reload
+python -m app.main --web
 ```
 
-All API routes are served under the `/api` prefix (e.g. `/api/health`, `/api/report/imdb`).
+This starts FastAPI on port 8000 and serves the React frontend. Open `http://localhost:8000` in your browser, paste an IMDB movie URL, and click **Generate Report**.
 
-In production, if a `frontend/dist` directory is present, the server will also serve the compiled frontend and handle client-side routing via an SPA fallback.
+**What the report contains:**
+- Per-aspect sentiment breakdown (positive / negative / not mentioned) across all scraped reviews
+- Bar, pie, and radar charts visualizing sentiment distribution
+- A RAG-generated narrative per aspect — grounded in direct quotes retrieved from the reviews
+- An overall summary synthesizing sentiment across all aspects
+
+**Frontend dev server** (with hot reload, proxies `/api` to port 8000):
+```bash
+cd frontend && npm run dev
+```
+
+### IMDB Report API
+
+`POST /api/report/imdb` accepts an IMDB movie URL and streams progress + results as Server-Sent Events (SSE).
+
+Stages: `scraping` → `analyzing` → `generating` → `done`
+
+**Request body:**
+```json
+{
+  "imdb_url": "https://www.imdb.com/title/tt1375666/",
+  "aspects": ["acting_performances", "story_plot"]
+}
+```
+
+The `aspects` field is optional; omitting it uses the default aspects defined in `app/config.py`.
 
 ### Command-Line Interface
 
@@ -64,6 +95,7 @@ python -m app.main --dataset path/to/IMDB_Dataset.csv --test 5
 
 | Flag | Description |
 |------|-------------|
+| `--web` | Start the web server |
 | `--review TEXT` | Review text to analyze |
 | `--file PATH` | Path to file containing review text |
 | `--dataset PATH` | Path to a local CSV dataset |
@@ -71,22 +103,6 @@ python -m app.main --dataset path/to/IMDB_Dataset.csv --test 5
 | `--aspects A B ...` | Custom aspects to analyze |
 | `--method METHOD` | `"LLM (OpenAI)"` or `"Zero-shot NLI (local)"` |
 | `--test N` | Analyze first N reviews from a dataset |
-
-### IMDB Report Endpoint
-
-`POST /api/report/imdb` accepts an IMDB movie URL, scrapes reviews, runs aspect-based sentiment analysis, and streams progress and results back as Server-Sent Events (SSE).
-
-Stages emitted: `scraping` → `analyzing` → `generating` → `done`
-
-**Request body:**
-```json
-{
-  "imdb_url": "https://www.imdb.com/title/tt1375666/",
-  "aspects": ["acting_performances", "story_plot"]
-}
-```
-
-The `aspects` field is optional; omitting it uses the default aspects defined in `app/config.py`.
 
 ## Methods
 
@@ -119,8 +135,6 @@ python inference/run_inference_on_gold.py
 # Compute macro F1 per aspect
 python evaluation/final_sentiment_analysis.py
 ```
-
-Gold dataset: `data/gold_dataset_aspect_level - gold_dataset_aspect_level.csv`
 
 ## Troubleshooting
 
