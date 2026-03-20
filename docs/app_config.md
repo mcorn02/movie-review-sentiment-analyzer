@@ -4,7 +4,7 @@
 
 ## 1. Module Overview
 
-**File:** `app/config.py`  
+**File:** `app/config.py`
 **Docstring:** *Configuration management and API key loading.*
 
 `config.py` serves as the **centralized configuration hub** for the application. It is responsible for:
@@ -36,7 +36,7 @@ DEFAULT_ASPECTS: list[str] = [
 ]
 ```
 
-**Description:**  
+**Description:**
 A list of default aspect categories used during sentiment analysis. These represent the facets of a subject (e.g., a film or media piece) that the application analyzes by default when no custom aspects are provided by the caller.
 
 | Attribute | Value |
@@ -61,7 +61,7 @@ A list of default aspect categories used during sentiment analysis. These repres
 DEFAULT_NLI_THRESHOLD: float = 0.55
 ```
 
-**Description:**  
+**Description:**
 The default confidence threshold for **Natural Language Inference (NLI)**-based classification decisions. Predictions with a confidence score below this threshold may be discarded or treated as inconclusive.
 
 | Attribute | Value |
@@ -78,7 +78,7 @@ The default confidence threshold for **Natural Language Inference (NLI)**-based 
 DEFAULT_ZSC_THRESHOLD: float = 0.6
 ```
 
-**Description:**  
+**Description:**
 The default confidence threshold for **Zero-Shot Classification (ZSC)** decisions. Operates similarly to `DEFAULT_NLI_THRESHOLD` but applies specifically to the zero-shot classification pipeline.
 
 | Attribute | Value |
@@ -97,7 +97,7 @@ The default confidence threshold for **Zero-Shot Classification (ZSC)** decision
 SENTENCE_TRANSFORMER_MODEL: str = "all-MiniLM-L6-v2"
 ```
 
-**Description:**  
+**Description:**
 Identifier for the **Sentence Transformer** model used to generate dense vector embeddings for semantic similarity tasks.
 
 | Attribute | Value |
@@ -108,13 +108,33 @@ Identifier for the **Sentence Transformer** model used to generate dense vector 
 
 ---
 
+#### `CROSS_ENCODER_MODEL`
+
+```python
+CROSS_ENCODER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+```
+
+**Description:**
+Identifier for the **Cross-Encoder** model used for re-ranking or more precise relevance scoring between text pairs. Unlike bi-encoders (such as `SENTENCE_TRANSFORMER_MODEL`), a cross-encoder jointly processes both input texts together, producing a single relevance score rather than independent embeddings. This makes it more accurate for ranking tasks at the cost of higher inference latency.
+
+| Attribute | Value |
+|---|---|
+| Type | `str` |
+| Model Source | [Hugging Face — `cross-encoder/ms-marco-MiniLM-L-6-v2`](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2) |
+| Characteristics | Trained on MS MARCO passage ranking dataset; optimized for relevance scoring between query-document pairs |
+| Typical Usage | Re-ranking candidate passages retrieved by a bi-encoder in a retrieval pipeline |
+
+> **Architectural note:** In a typical two-stage retrieval system, `SENTENCE_TRANSFORMER_MODEL` (bi-encoder) performs fast approximate candidate retrieval, and `CROSS_ENCODER_MODEL` then re-ranks those candidates with higher precision. The two constants are designed to work in tandem.
+
+---
+
 #### `ZERO_SHOT_MODEL`
 
 ```python
 ZERO_SHOT_MODEL: str = "typeform/distilbert-base-uncased-mnli"
 ```
 
-**Description:**  
+**Description:**
 Identifier for the **zero-shot classification** model used to classify text into arbitrary label categories without task-specific training data.
 
 | Attribute | Value |
@@ -131,7 +151,7 @@ Identifier for the **zero-shot classification** model used to classify text into
 OPENAI_MODEL: str = "gpt-4o-mini"
 ```
 
-**Description:**  
+**Description:**
 The OpenAI model identifier used for all calls to the OpenAI API. Centralizing this value ensures that switching model versions requires a change in only one location.
 
 | Attribute | Value |
@@ -147,7 +167,7 @@ The OpenAI model identifier used for all calls to the OpenAI API. Centralizing t
 OPENAI_MAX_TOKENS: int = 350
 ```
 
-**Description:**  
+**Description:**
 The maximum number of tokens the OpenAI model is permitted to generate in a single API response. This acts as a cost-control and latency-management guardrail.
 
 | Attribute | Value |
@@ -167,10 +187,10 @@ The maximum number of tokens the OpenAI model is permitted to generate in a sing
 def get_openai_api_key() -> str:
 ```
 
-**Description:**  
+**Description:**
 Retrieves the OpenAI API key from the runtime environment. Reads the `OPENAI_API_KEY` environment variable, which may have been populated either by the shell environment or by the `.env` file loaded at module import time.
 
-**Parameters:**  
+**Parameters:**
 None.
 
 **Returns:**
@@ -191,7 +211,7 @@ OpenAI API key not found. Please set OPENAI_API_KEY environment variable
 or add it to a .env file in the project root.
 ```
 
-**Side Effects:**  
+**Side Effects:**
 - Reads from the process environment via `os.getenv()`.
 - No writes or mutations occur.
 
@@ -206,7 +226,7 @@ except ValueError as e:
     print(f"Configuration error: {e}")
 ```
 
-**Design Notes:**  
+**Design Notes:**
 - The function uses a **fail-fast** pattern — it raises immediately rather than returning `None` or a sentinel value, making misconfiguration obvious at the point of access rather than producing a cryptic downstream error.
 - Calling this function at module load time in dependent modules is acceptable; it will only fail if the key is genuinely absent.
 
@@ -228,36 +248,39 @@ This call executes **when the module is first imported**. It searches for a `.en
 
 ## 3. What Changed
 
-The diff introduces a single line addition to the module:
-
-```diff
-+# fmt: skip
-```
-
-This comment is inserted immediately after the module docstring and before the `import os` statement.
+The diff introduces a single addition to the module: a new model identifier constant, `CROSS_ENCODER_MODEL`.
 
 ### What Was Added
 
-A `# fmt: skip` directive comment was added at the top of the import block.
+```diff
++CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+```
+
+A new module-level string constant was inserted into the model configuration block, between `SENTENCE_TRANSFORMER_MODEL` and `ZERO_SHOT_MODEL`.
 
 ### What It Means Functionally
 
-`# fmt: skip` is a **Black formatter directive**. When the [Black](https://github.com/psf/black) code formatter processes a Python file, this comment instructs it to **skip reformatting the line(s) it is associated with**. In practice, when placed at the top of an import section or block, it can be used to preserve a manually ordered or intentionally structured sequence of imports that Black would otherwise reorder or reformat.
+`CROSS_ENCODER_MODEL` exposes the Hugging Face model identifier `"cross-encoder/ms-marco-MiniLM-L-6-v2"` as a centrally managed configuration constant. Any module in the application that performs cross-encoder-based re-ranking or relevance scoring can now import this value from `app.config` rather than hardcoding the model string inline.
 
-### Why the Change Matters
+This follows the same pattern already established by `SENTENCE_TRANSFORMER_MODEL` and `ZERO_SHOT_MODEL` — all model identifiers are declared here so that changes to model versions require edits in exactly one place.
 
-- **No runtime behavior is affected.** Python's interpreter ignores this as a standard comment — it has zero effect on execution, imports, or any logic in the module.
-- **Formatter behavior is affected.** The `# fmt: skip` directive signals to Black that the developer intends for this code to remain in its current form and should not be automatically reformatted. This is relevant in CI pipelines where Black is run as a linter/formatter check.
-- **Preservation of import ordering intent:** The placement before the `import os` line suggests the developer wants to maintain the specific import ordering as-is (e.g., preserving `import os` before `from dotenv import load_dotenv` without Black potentially grouping or reordering them differently).
+### Why the Change Matters Functionally
+
+- **New capability signaled:** The addition of a cross-encoder constant indicates that the application now includes (or is being extended to include) a re-ranking stage in its retrieval or scoring pipeline. Cross-encoders complement bi-encoders by providing higher-accuracy pairwise scoring after an initial candidate retrieval step.
+- **Centralized control:** Consumer modules can now reference `CROSS_ENCODER_MODEL` instead of embedding the model name as a magic string, making future model swaps (e.g., upgrading to a larger cross-encoder variant) a single-line change in `config.py`.
+- **Discoverability:** The constant is immediately visible to any developer reading `config.py` as the authoritative list of models in use, improving maintainability and auditability of model dependencies.
 
 ### Behavioral Differences From Before
 
 | Aspect | Before | After |
 |---|---|---|
-| Runtime execution | Identical | Identical |
-| Black formatting | Block eligible for auto-formatting | Block exempt from Black reformatting |
-| Import behavior | Unchanged | Unchanged |
-| Public API | Unchanged | Unchanged |
+| `CROSS_ENCODER_MODEL` constant | Not present | Available as `app.config.CROSS_ENCODER_MODEL` |
+| Cross-encoder model identifier | No centralized value | `"cross-encoder/ms-marco-MiniLM-L-6-v2"` |
+| Runtime behavior (existing code) | Unchanged | Unchanged |
+| Public API surface | Unchanged | Extended with one new exported name |
+| Other constants and functions | Unchanged | Unchanged |
+
+> **Important:** This change **extends** the module's public API by adding a new importable name. No existing constants, thresholds, or functions were modified or removed, so all previously written consumer code continues to work without alteration.
 
 ---
 
@@ -277,15 +300,18 @@ None. `app/config.py` does **not** import from any other internal application mo
 ### What Depends On This Module
 
 Any application component that requires:
-- **Model identifiers** (`SENTENCE_TRANSFORMER_MODEL`, `ZERO_SHOT_MODEL`, `OPENAI_MODEL`, `OPENAI_MAX_TOKENS`) — typically ML pipeline modules and inference engines.
+- **Model identifiers** (`SENTENCE_TRANSFORMER_MODEL`, `CROSS_ENCODER_MODEL`, `ZERO_SHOT_MODEL`, `OPENAI_MODEL`, `OPENAI_MAX_TOKENS`) — typically ML pipeline modules and inference engines.
 - **Classification thresholds** (`DEFAULT_NLI_THRESHOLD`, `DEFAULT_ZSC_THRESHOLD`) — analysis and post-processing modules.
 - **Default analytical parameters** (`DEFAULT_ASPECTS`) — modules that orchestrate sentiment/aspect analysis.
 - **API credentials** (`get_openai_api_key()`) — any module making OpenAI API calls.
 
 **Expected consumers** within the project would include:
-- Sentiment analysis pipeline modules
-- Zero-shot classification wrappers
-- OpenAI client initialization code
+- Sentence embedding and semantic search modules (consuming `SENTENCE_TRANSFORMER_MODEL`)
+- Re-ranking and relevance scoring modules (consuming `CROSS_ENCODER_MODEL`)
+- Zero-shot classification wrappers (consuming `ZERO_SHOT_MODEL`, `DEFAULT_ZSC_THRESHOLD`)
+- NLI-based classification modules (consuming `DEFAULT_NLI_THRESHOLD`)
+- Sentiment and aspect analysis orchestrators (consuming `DEFAULT_ASPECTS`)
+- OpenAI client initialization code (consuming `OPENAI_MODEL`, `OPENAI_MAX_TOKENS`, `get_openai_api_key()`)
 - Application entry points and CLI handlers
 
 ### Environment Variables
@@ -300,4 +326,4 @@ Any application component that requires:
 
 ---
 
-`FUNCTIONAL_CHANGE: NO`
+`FUNCTIONAL_CHANGE: YES`

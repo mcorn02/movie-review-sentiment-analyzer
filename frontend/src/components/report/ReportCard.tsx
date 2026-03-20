@@ -14,11 +14,11 @@ export function ReportCard({ movieTitle, nReviews, overallSummary }: ReportCardP
         <div className="flex items-start gap-3 mb-3">
           <Film className="w-6 h-6 text-blue-500 mt-0.5 shrink-0" />
           <div>
-            <h2 className="text-xl font-bold text-gray-900">{movieTitle}</h2>
-            <p className="text-sm text-gray-500">Based on {nReviews} reviews</p>
+            <h2 className="text-xl font-bold text-white">{movieTitle}</h2>
+            <p className="text-sm text-gray-400">Based on {nReviews} reviews</p>
           </div>
         </div>
-        <p className="text-gray-700 leading-relaxed">{overallSummary}</p>
+        <p className="text-gray-300 leading-relaxed">{overallSummary}</p>
       </CardBody>
     </Card>
   );

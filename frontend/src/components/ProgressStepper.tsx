@@ -41,7 +41,7 @@ export function ProgressStepper({ stage, stageMessage, progress, total }: Progre
                       ? 'bg-green-500 text-white'
                       : isCurrent
                         ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 text-gray-400'
+                        : 'bg-gray-800 text-gray-500'
                   }`}
                 >
                   {isComplete ? (
@@ -54,7 +54,7 @@ export function ProgressStepper({ stage, stageMessage, progress, total }: Progre
                 </div>
                 <span
                   className={`text-sm font-medium ${
-                    isComplete || isCurrent ? 'text-gray-900' : 'text-gray-400'
+                    isComplete || isCurrent ? 'text-white' : 'text-gray-500'
                   }`}
                 >
                   {step.label}
@@ -63,7 +63,7 @@ export function ProgressStepper({ stage, stageMessage, progress, total }: Progre
               {idx < steps.length - 1 && (
                 <div
                   className={`flex-1 h-0.5 mx-4 ${
-                    currentIndex > idx ? 'bg-green-500' : 'bg-gray-200'
+                    currentIndex > idx ? 'bg-green-500' : 'bg-gray-800'
                   }`}
                 />
               )}
@@ -74,9 +74,9 @@ export function ProgressStepper({ stage, stageMessage, progress, total }: Progre
 
       {stageMessage && (
         <div className="text-center">
-          <p className="text-sm text-gray-600">{stageMessage}</p>
+          <p className="text-sm text-gray-400">{stageMessage}</p>
           {total > 0 && (
-            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+            <div className="mt-2 w-full bg-gray-800 rounded-full h-2">
               <div
                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${Math.min((progress / total) * 100, 100)}%` }}

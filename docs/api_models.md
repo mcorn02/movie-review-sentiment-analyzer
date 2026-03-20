@@ -331,7 +331,7 @@ class JobStatusResponse(BaseModel):
 
 ---
 
-### IMDB SSE Pipeline Models
+### Movie Report / SSE Pipeline Models
 
 ---
 
@@ -339,7 +339,7 @@ class JobStatusResponse(BaseModel):
 
 ```python
 class IMDBReportRequest(BaseModel):
-    imdb_url: str = Field(..., description="IMDB movie URL (must contain tt... ID)")
+    imdb_url: str = Field(..., description="IMDB movie URL")
     aspects: list[str] | None = Field(
         None, description="Aspects to analyze (defaults to movie preset)"
     )
@@ -349,11 +349,11 @@ class IMDBReportRequest(BaseModel):
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `imdb_url` | `str` | ✅ Yes | Full IMDB movie URL; must contain a valid `tt`-prefixed title ID (e.g., `https://www.imdb.com/title/tt0111161/`) |
+| `imdb_url` | `str` | ✅ Yes | Full IMDB movie URL (e.g., `https://www.imdb.com/title/tt0111161/`) |
 | `aspects` | `list[str] \| None` | ❌ No | Explicit aspects to evaluate; falls back to the built-in movie domain preset when `None` |
 
 **Side effects / dependencies:**
-- The backend is expected to extract the `tt...` ID from `imdb_url` for scraping; invalid URLs that lack this pattern should result in a validation or HTTP error at the route level.
+- The backend is expected to extract the `tt...` title ID from `imdb_url` for scraping; malformed URLs are not rejected at the model level and must be validated at the route or service layer.
 - When `aspects` is `None`, the server resolves the movie preset domain's aspect list, meaning this field has an implicit dependency on the preset domain configuration.
 
 ---
@@ -362,41 +362,36 @@ class IMDBReportRequest(BaseModel):
 
 ### Summary of the Diff
 
-The diff adds the `IMDBReportRequest` model to the bottom of `api/models.py`, along with a section comment (`# ── IMDB Report (SSE pipeline) ──`).
+Two changes were made to the `IMDBReportRequest` model and its surrounding section comment:
 
-### What Was Added
+1. **Section header renamed** — `# ── IMDB Report (SSE pipeline) ──` was changed to `# ── Movie Report (SSE pipeline) ─────`.
+2. **Field description simplified** — the `imdb_url` field description was shortened from `"IMDB movie URL (must contain tt... ID)"` to `"IMDB movie URL"`.
 
-```python
-# ── IMDB Report (SSE pipeline) ──────────────────────────────────────────────
+### Detailed Breakdown
 
-class IMDBReportRequest(BaseModel):
-    imdb_url: str = Field(..., description="IMDB movie URL (must contain tt... ID)")
-    aspects: list[str] | None = Field(
-        None, description="Aspects to analyze (defaults to movie preset)"
-    )
+#### Change 1: Section Comment Rename
+
+```diff
+-# ── IMDB Report (SSE pipeline) ──────────────────────────────────────────────
++# ── Movie Report (SSE pipeline) ─────────────────────────────────────────────
 ```
 
-### Functional Significance
+This is a cosmetic rename of the inline section heading. It aligns the comment style with a slightly more generic label ("Movie Report" vs. "IMDB Report"), consistent with how the class itself (`IMDBReportRequest`) is named from a functional rather than platform-specific perspective. No code behavior is affected.
 
-| Dimension | Detail |
-|-----------|--------|
-| **New public API surface** | Introduces a new request schema (`IMDBReportRequest`) that API route handlers can now reference to validate and parse incoming requests for the IMDB SSE pipeline endpoint |
-| **New capability unlocked** | Enables a dedicated pipeline for scraping IMDB movie reviews and streaming analysis results via Server-Sent Events — a real-time pattern distinct from the existing async batch job system |
-| **Aspect defaulting behavior** | The `aspects: list[str] \| None = None` pattern means callers can omit aspects entirely, relying on the movie domain preset; this is user-facing behavior |
-| **URL validation responsibility** | The `imdb_url` field is a plain `str` with no Pydantic `HttpUrl` or regex validator at the model level; the `tt...` ID extraction and validation is deferred to route or service logic |
+#### Change 2: `imdb_url` Field Description Update
 
-### Behavioral Differences from Before
+```diff
+-    imdb_url: str = Field(..., description="IMDB movie URL (must contain tt... ID)")
++    imdb_url: str = Field(..., description="IMDB movie URL")
+```
 
-- **Before:** No model existed to handle IMDB-specific requests; any such endpoint would have lacked a validated request schema.
-- **After:** The `IMDBReportRequest` model provides structured validation and documentation for the IMDB pipeline. API consumers now receive clear field descriptions and type enforcement.
-- There are **no modifications or removals** of any previously existing models or enumerations; all prior behavior is fully preserved.
+The phrase `(must contain tt... ID)` was removed from the `description` string. This description is surfaced in:
+- Auto-generated OpenAPI/Swagger documentation served by FastAPI.
+- Any tooling or client that reads the JSON Schema emitted by Pydantic.
 
----
+**Before:** The description explicitly informed API consumers that the URL must contain a `tt`-prefixed IMDB title identifier, acting as informal inline documentation of a validation constraint.
 
-## 4. Dependencies & Integration
-
-### What This Module Imports
-
-| Import | Source | Purpose |
-|--------|--------|---------|
-| `annotations` | `
+**After:** The description is simplified to a plain label. The `tt...` ID requirement is no longer communicated through the schema field description. This means:
+- API consumers reading generated docs will no longer see this constraint documented at the field level.
+- The constraint itself is not enforced at the Pydantic model level in either version (no `HttpUrl` type or regex validator is applied), so the actual validation behavior at runtime is unchanged.
+- Any enforcement of the `tt...`

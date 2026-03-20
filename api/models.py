@@ -102,10 +102,10 @@ class JobStatusResponse(BaseModel):
     completed_at: str | None = None
 
 
-# ── IMDB Report (SSE pipeline) ──────────────────────────────────────────────
+# ── Movie Report (SSE pipeline) ─────────────────────────────────────────────
 
 class IMDBReportRequest(BaseModel):
-    imdb_url: str = Field(..., description="IMDB movie URL (must contain tt... ID)")
+    imdb_url: str = Field(..., description="IMDB movie URL")
     aspects: list[str] | None = Field(
         None, description="Aspects to analyze (defaults to movie preset)"
     )

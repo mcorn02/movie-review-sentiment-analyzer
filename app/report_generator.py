@@ -7,9 +7,15 @@ snippets per aspect, and uses an LLM to produce a grounded narrative report.
 import asyncio
 import numpy as np
 import pandas as pd
-from sentence_transformers import util
+from sentence_transformers import CrossEncoder, util
 
-from .config import DEFAULT_ASPECTS, OPENAI_MODEL, OPENAI_MAX_TOKENS, get_openai_api_key
+from .config import (
+    CROSS_ENCODER_MODEL,
+    DEFAULT_ASPECTS,
+    OPENAI_MODEL,
+    OPENAI_MAX_TOKENS,
+    get_openai_api_key,
+)
 from .preprocessing import clean_text, get_sentences
 from .sentiment_analyzer import (
     _get_sentence_model,
@@ -18,6 +24,16 @@ from .sentiment_analyzer import (
     analyze,
     async_analyze_batch,
 )
+
+_reranker_model = None
+
+
+def _get_reranker_model():
+    """Lazy load cross-encoder for re-ranking."""
+    global _reranker_model
+    if _reranker_model is None:
+        _reranker_model = CrossEncoder(CROSS_ENCODER_MODEL)
+    return _reranker_model
 
 
 def build_corpus(reviews: list[str]) -> dict:
@@ -48,8 +64,7 @@ def build_corpus(reviews: list[str]) -> dict:
         "embeddings": embeddings,
     }
 
-
-def retrieve_for_aspect(aspect: str, corpus: dict, k: int = 10) -> list[dict]:
+def _retrieve_candidates(aspect: str, corpus: dict, k: int = 30) -> list[dict]:
     """
     Retrieve the top-k most relevant sentences for an aspect.
 
@@ -58,7 +73,6 @@ def retrieve_for_aspect(aspect: str, corpus: dict, k: int = 10) -> list[dict]:
     model = _get_sentence_model()
     asp_emb = model.encode([aspect], convert_to_numpy=True)
     scores = util.cos_sim(asp_emb, corpus["embeddings"])[0].numpy()
-
     k = min(k, len(scores))
     top_indices = np.argsort(scores)[::-1][:k]
 
@@ -71,6 +85,34 @@ def retrieve_for_aspect(aspect: str, corpus: dict, k: int = 10) -> list[dict]:
         })
     return results
 
+def _rerank_candidates(aspect: str, candidates: list[dict], k: int = 10) -> list[dict]:
+    """
+    Re-rank candidates using a cross-encoder. Returns top-k by relevance.
+    """
+    if not candidates:
+        return []
+    model = _get_reranker_model()
+    pairs = [(aspect, c["sentence"]) for c in candidates]
+    scores = model.predict(pairs)
+    if isinstance(scores, np.ndarray):
+        scores = scores.tolist()
+    indexed = list(zip(candidates, scores))
+    indexed.sort(key=lambda x: x[1], reverse=True)
+    reranked = []
+    for c, score in indexed[:k]:
+        c = dict(c)
+        c["score"] = float(score)
+        reranked.append(c)
+    return reranked
+
+
+def retrieve_for_aspect(aspect: str, corpus: dict, k: int = 10, k_retrieve: int = 30) -> list[dict]:
+    """
+    Retrieve the top-k most relevant sentences for an aspect.
+    First-stage NN retrieves k_retrieve candidates; cross-encoder re-ranks to top k.
+    """
+    candidates = _retrieve_candidates(aspect, corpus, k=k_retrieve)
+    return _rerank_candidates(aspect, candidates, k=k)
 
 def _compute_distribution(aspect_results: list[dict]) -> dict:
     """Count sentiment distribution for a single aspect across all reviews."""

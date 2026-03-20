@@ -28,7 +28,9 @@
       "Bash(git check-ignore:*)",
       "Bash(grep -r \"password\\\\|pwd\\\\|passwd\" /Users/michaelcorn/Desktop/product_reviewer --include=*.py --include=*.js --include=*.ts --exclude-dir=venv --exclude-dir=node_modules --exclude-dir=.git)",
       "Bash(find /Users/michaelcorn/Desktop/product_reviewer -type f \\\\\\(-name *credentials* -o -name *secret* -o -name *token* -o -name *auth* \\\\\\) ! -path */venv/* ! -path */.git/* ! -path */node_modules/*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(python -c \":*)",
+      "Bash(source /Users/michaelcorn/Desktop/product_reviewer/venv/bin/activate)"
     ]
   }
 }

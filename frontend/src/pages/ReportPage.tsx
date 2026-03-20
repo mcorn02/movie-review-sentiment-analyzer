@@ -18,14 +18,14 @@ export function ReportPage() {
   const aspects = sse.report?.aspects ?? sse.completedAspects;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-950">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-white">
             Movie Review Analyzer
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-400 mt-1">
             Paste an IMDB URL to analyze movie reviews with AI-powered sentiment analysis
           </p>
         </div>
@@ -39,7 +39,7 @@ export function ReportPage() {
 
         {/* Warning */}
         {sse.warning && (
-          <div className="flex items-center gap-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
+          <div className="flex items-center gap-2 p-4 bg-yellow-950 border border-yellow-800 rounded-lg text-yellow-300 text-sm">
             <AlertTriangle className="w-5 h-5 shrink-0" />
             {sse.warning}
           </div>
@@ -47,7 +47,7 @@ export function ReportPage() {
 
         {/* Error */}
         {sse.error && (
-          <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+          <div className="flex items-center gap-2 p-4 bg-red-950 border border-red-800 rounded-lg text-red-300 text-sm">
             <XCircle className="w-5 h-5 shrink-0" />
             {sse.error}
           </div>
@@ -67,14 +67,24 @@ export function ReportPage() {
           </Card>
         )}
 
+        {/* ReportCard — overview summary (above charts) */}
+        {showReport && sse.report && (
+          <ReportCard
+            movieTitle={sse.report.movie_title}
+            nReviews={sse.report.n_reviews}
+            overallSummary={sse.report.overall_summary}
+          />
+        )}
+
         {/* Charts */}
         {showCharts && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-white">
                   Sentiment by Aspect
                 </h2>
+                <p className="text-sm text-gray-400">Among reviews that mentioned each aspect</p>
               </CardHeader>
               <CardBody>
                 <SentimentBarChart distributions={sse.distributions} />
@@ -83,9 +93,10 @@ export function ReportPage() {
 
             <Card>
               <CardHeader>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Overall Sentiment
+                <h2 className="text-lg font-semibold text-white">
+                  Mentioned Sentiment
                 </h2>
+                <p className="text-sm text-gray-400">Among reviews that mentioned each aspect</p>
               </CardHeader>
               <CardBody>
                 <SentimentPieChart distributions={sse.distributions} />
@@ -94,10 +105,10 @@ export function ReportPage() {
 
             <Card className="lg:col-span-2">
               <CardHeader>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-white">
                   Positivity Radar
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-400">
                   Positivity score per aspect (% of mentioned reviews that are positive)
                 </p>
               </CardHeader>
@@ -108,20 +119,12 @@ export function ReportPage() {
           </div>
         )}
 
-        {/* Report */}
+        {/* Aspect Cards */}
         {showReport && sse.report && (
-          <div className="space-y-6">
-            <ReportCard
-              movieTitle={sse.report.movie_title}
-              nReviews={sse.report.n_reviews}
-              overallSummary={sse.report.overall_summary}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {aspects.map(aspect => (
-                <AspectSection key={aspect.name} aspect={aspect} />
-              ))}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {aspects.map(aspect => (
+              <AspectSection key={aspect.name} aspect={aspect} />
+            ))}
           </div>
         )}
       </div>

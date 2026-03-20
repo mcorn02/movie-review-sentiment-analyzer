@@ -8,24 +8,21 @@ interface SentimentPieChartProps {
 const COLORS = {
   Positive: '#22c55e',
   Negative: '#ef4444',
-  'Not Mentioned': '#d1d5db',
 };
 
 export function SentimentPieChart({ distributions }: SentimentPieChartProps) {
-  // Aggregate across all aspects
+  // Aggregate only mentioned reviews across all aspects
   const totals = distributions.reduce(
     (acc, d) => ({
       positive: acc.positive + d.positive,
       negative: acc.negative + d.negative,
-      not_mentioned: acc.not_mentioned + d.not_mentioned,
     }),
-    { positive: 0, negative: 0, not_mentioned: 0 }
+    { positive: 0, negative: 0 }
   );
 
   const data = [
     { name: 'Positive', value: totals.positive },
     { name: 'Negative', value: totals.negative },
-    { name: 'Not Mentioned', value: totals.not_mentioned },
   ].filter(d => d.value > 0);
 
   return (
@@ -49,7 +46,9 @@ export function SentimentPieChart({ distributions }: SentimentPieChartProps) {
             />
           ))}
         </Pie>
-        <Tooltip />
+        <Tooltip
+          contentStyle={{ background: '#111827', border: '1px solid #374151', color: '#f9fafb', borderRadius: '8px' }}
+        />
         <Legend />
       </PieChart>
     </ResponsiveContainer>

@@ -1,8 +1,8 @@
 """
-SSE streaming endpoint for the IMDB movie report pipeline.
+SSE streaming endpoint for the movie report pipeline.
 
-POST /report/imdb — accepts an IMDB URL, scrapes reviews, runs analysis,
-and streams progress + results as Server-Sent Events.
+POST /report/imdb — accepts an IMDB URL, scrapes reviews,
+runs analysis, and streams progress + results as Server-Sent Events.
 """
 import asyncio
 import json
@@ -18,6 +18,8 @@ from app.report_generator import async_generate_report
 
 router = APIRouter(prefix="/report", tags=["report"])
 
+IMDB_URL_RE = re.compile(r"imdb\.com/title/tt\d+", re.I)
+
 
 def _sse_event(event: str, data: dict) -> str:
     """Format a single SSE event."""
@@ -28,17 +30,12 @@ def _sse_event(event: str, data: dict) -> str:
 @router.post("/imdb")
 async def imdb_report(request: IMDBReportRequest):
     """
-    Stream an IMDB movie report via SSE.
+    Stream a movie report via SSE.
 
     Stages: scraping → analyzing → generating → done
     """
-    # Validate URL
-    url_pattern = re.compile(r"imdb\.com/title/tt\d+", re.I)
-    if not url_pattern.search(request.imdb_url):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid IMDB URL. Must contain imdb.com/title/tt...",
-        )
+    if not IMDB_URL_RE.search(request.imdb_url):
+        raise HTTPException(status_code=400, detail="Please enter a valid IMDB movie URL (imdb.com/title/tt...).")
 
     try:
         movie_id = extract_movie_id(request.imdb_url)
@@ -55,22 +52,19 @@ async def imdb_report(request: IMDBReportRequest):
         })
 
         try:
-            reviews_data = await asyncio.to_thread(
-                scrape_imdb_reviews, movie_id, 75
-            )
-        except RuntimeError as e:
+            reviews_data = await asyncio.to_thread(scrape_imdb_reviews, movie_id, 75)
+        except Exception as e:
             yield _sse_event("error", {"message": str(e)})
             yield _sse_event("done", {"status": "error"})
             return
 
         if not reviews_data:
             yield _sse_event("error", {
-                "message": f"No reviews found for movie {movie_id}.",
+                "message": f"No reviews found for '{movie_id}' on IMDB.",
             })
             yield _sse_event("done", {"status": "error"})
             return
 
-        # Extract review texts and movie title
         review_texts = [r["review_text"] for r in reviews_data if r.get("review_text")]
         movie_title = reviews_data[0].get("movie_title", movie_id) if reviews_data else movie_id
 
@@ -88,17 +82,13 @@ async def imdb_report(request: IMDBReportRequest):
             })
 
         # Stage 2 & 3: Analysis + Report generation (via async pipeline)
-        aspect_results_collected = []
-
         async def on_stage(stage, data=None):
             if stage == "analyzing":
-                yield_data = {
+                event_queue.put_nowait(("stage", {
                     "stage": "analyzing",
                     "message": f"Analyzing sentiment... ({data.get('progress', 0)}/{data.get('total', 0)})",
                     **data,
-                }
-                # We can't yield from a nested callback, so we use a queue
-                event_queue.put_nowait(("stage", yield_data))
+                }))
             elif stage == "generating":
                 event_queue.put_nowait(("stage", {
                     "stage": "generating",
@@ -120,10 +110,8 @@ async def imdb_report(request: IMDBReportRequest):
             finally:
                 event_queue.put_nowait(("_done", None))
 
-        # Start the report generation task
         task = asyncio.create_task(run_report())
 
-        # Stream events from the queue
         report_result = None
         while True:
             event_type, event_data = await event_queue.get()
@@ -134,7 +122,7 @@ async def imdb_report(request: IMDBReportRequest):
                 continue
             yield _sse_event(event_type, event_data)
 
-        await task  # Ensure task is fully complete
+        await task
 
         if report_result is None:
             yield _sse_event("done", {"status": "error"})
@@ -155,7 +143,6 @@ async def imdb_report(request: IMDBReportRequest):
 
         yield _sse_event("charts", {"distributions": distributions})
 
-        # Send the full report
         yield _sse_event("report", {
             "overall_summary": report_result["overall_summary"],
             "movie_title": movie_title,

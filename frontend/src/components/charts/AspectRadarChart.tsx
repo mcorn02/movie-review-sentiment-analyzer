@@ -30,10 +30,13 @@ export function AspectRadarChart({ distributions }: AspectRadarChartProps) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <RadarChart data={data}>
-        <PolarGrid stroke="#e5e7eb" />
-        <PolarAngleAxis dataKey="aspect" tick={{ fontSize: 11 }} />
-        <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
-        <Tooltip formatter={(value) => `${value}%`} />
+        <PolarGrid stroke="#374151" />
+        <PolarAngleAxis dataKey="aspect" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+        <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10, fill: '#6b7280' }} />
+        <Tooltip
+          formatter={(value) => `${value}%`}
+          contentStyle={{ background: '#111827', border: '1px solid #374151', color: '#f9fafb', borderRadius: '8px' }}
+        />
         <Radar
           name="Positivity Score"
           dataKey="score"

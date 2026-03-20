@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 
 const variants = {
-  positive: 'bg-green-100 text-green-800',
-  negative: 'bg-red-100 text-red-800',
-  neutral: 'bg-gray-100 text-gray-800',
-  info: 'bg-blue-100 text-blue-800',
+  positive: 'bg-green-900 text-green-300',
+  negative: 'bg-red-900 text-red-300',
+  neutral: 'bg-gray-800 text-gray-300',
+  info: 'bg-blue-900 text-blue-300',
 } as const;
 
 interface BadgeProps {

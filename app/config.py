@@ -24,6 +24,7 @@ DEFAULT_ZSC_THRESHOLD = 0.6
 
 # Model configuration
 SENTENCE_TRANSFORMER_MODEL = "all-MiniLM-L6-v2"
+CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 ZERO_SHOT_MODEL = "typeform/distilbert-base-uncased-mnli"
 OPENAI_MODEL = "gpt-4o-mini"
 OPENAI_MAX_TOKENS = 350

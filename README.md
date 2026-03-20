@@ -18,12 +18,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Install frontend dependencies and build:
+3. Install Playwright's Chromium browser (used for scraping IMDB reviews):
+```bash
+playwright install chromium
+```
+
+4. Install frontend dependencies and build:
 ```bash
 cd frontend && npm install && npm run build
 ```
 
-4. Set up your OpenAI API key (required for LLM method):
+5. Set up your OpenAI API key (required for LLM method):
 ```bash
 export OPENAI_API_KEY=your_api_key_here
 ```
@@ -144,4 +149,4 @@ python evaluation/final_sentiment_analysis.py
 
 **NLTK data missing:** Run `python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')"` manually.
 
-**IMDB scraper returning 403:** IMDB may be rate-limiting requests. Wait a moment and try again.
+**IMDB scraper blocked or returning no results:** The scraper uses Playwright with headless Chromium to bypass bot detection. If reviews fail to load, ensure Playwright's Chromium browser is installed (`playwright install chromium`) and try again.
