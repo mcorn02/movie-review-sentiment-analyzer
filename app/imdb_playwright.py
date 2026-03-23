@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright
 
 
-def scrape_imdb_reviews_playwright(movie_id: str, max_reviews: int = 75) -> list[dict]:
+def scrape_imdb_reviews_playwright(movie_id: str, max_reviews: int = 100) -> list[dict]:
     url = f"https://www.imdb.com/title/{movie_id}/reviews/"
     reviews = []
 
@@ -42,25 +42,24 @@ def scrape_imdb_reviews_playwright(movie_id: str, max_reviews: int = 75) -> list
         raw_title = page.title()
         movie_title = raw_title.replace(" - User reviews", "").replace(" - User Reviews - IMDb", "").replace(" - IMDb", "").strip()
 
-        # Try to load more reviews if button exists
-        for _ in range(3):  # up to 3 load-more clicks
-            if len(reviews) >= max_reviews:
+        # Click load-more until we have enough review containers or button disappears
+        # The button text matches "\d+ more" (e.g. "25 more")
+        import re as _re
+        for _ in range(20):  # up to 20 clicks (~25 reviews each = ~500 max)
+            containers_so_far = page.query_selector_all('article.user-review-item')
+            if len(containers_so_far) >= max_reviews:
                 break
             try:
-                btn = page.query_selector('button.ipc-btn--see-more, [data-testid="load-more-btn"]')
-                if btn:
-                    btn.click()
-                    page.wait_for_timeout(1500)
+                load_more = page.locator('button', has_text=_re.compile(r'^\d+ more$'))
+                if load_more.count() == 0:
+                    break
+                load_more.first.click()
+                page.wait_for_timeout(2000)
             except Exception:
                 break
 
         # Extract review containers
-        containers = (
-            page.query_selector_all('article.user-review-item') or
-            page.query_selector_all('div[data-testid="review-card"]') or
-            page.query_selector_all('div.lister-item-content') or
-            page.query_selector_all('article')
-        )
+        containers = page.query_selector_all('article.user-review-item')
 
         for container in containers[:max_reviews]:
             # Review text

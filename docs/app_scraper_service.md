@@ -8,7 +8,7 @@
 
 ### Purpose
 
-The module provides a clean, stable interface for two operations: parsing an IMDB URL into a canonical movie ID, and fetching reviews for that movie. As of this revision, scraping is performed via **Playwright (headless Chromium)** through the `app.imdb_playwright` module, replacing the previous Scrapy-based subprocess approach.
+The module provides a clean, stable interface for two operations: parsing an IMDB URL into a canonical movie ID, and fetching reviews for that movie. Scraping is performed via **Playwright (headless Chromium)** through the `app.imdb_playwright` module.
 
 ### Responsibilities
 
@@ -96,7 +96,7 @@ extract_movie_id("not-a-valid-url")
 ```python
 def scrape_imdb_reviews(
     movie_id: str,
-    max_reviews: int = 75,
+    max_reviews: int = 100,
 ) -> list[dict]:
 ```
 
@@ -111,13 +111,24 @@ The import of `app.imdb_playwright` is performed **lazily** (inside the function
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `movie_id` | `str` | *(required)* | A valid IMDB title ID (e.g., `"tt1375666"`). Typically obtained via `extract_movie_id()`. |
-| `max_reviews` | `int` | `75` | The maximum number of reviews to scrape. Passed directly to the Playwright backend. |
+| `max_reviews` | `int` | `100` | The maximum number of reviews to scrape. Passed directly to the Playwright backend. |
 
 #### Return Value
 
 | Type | Description |
 |---|---|
 | `list[dict]` | A list of review dictionaries. Each dict contains the following keys (as defined by the scraping backend): `movie_id`, `movie_title`, `review_text`, `rating`, `review_date`, `source`. |
+
+#### Review Dict Schema
+
+| Key | Type | Description |
+|---|---|---|
+| `movie_id` | `str` | The IMDB title ID (e.g., `"tt1375666"`). |
+| `movie_title` | `str` | The title of the movie as reported by IMDB. |
+| `review_text` | `str` | The full text body of the review. |
+| `rating` | `str` or `None` | The numeric rating given by the reviewer, if present. |
+| `review_date` | `str` | The date the review was posted. |
+| `source` | `str` | The origin of the review (e.g., `"imdb"`). |
 
 #### Raises
 
@@ -127,14 +138,25 @@ Exceptions are not explicitly caught here; any exceptions raised by `scrape_imdb
 
 - **Performs network I/O** by connecting to `www.imdb.com` via the Playwright backend.
 - **Lazily imports** `app.imdb_playwright` at call time, not at module load time.
-- Blocking and synchronous from the caller's perspective. Should be wrapped in `asyncio.run_in_executor` or a thread pool if invoked from an `async` FastAPI route.
+- Blocking and synchronous from the caller's perspective. Should be wrapped in `asyncio.run_in_executor` or a thread pool if invoked from an `async` FastAPI route to avoid blocking the event loop.
 
 #### Example
 
 ```python
 movie_id = extract_movie_id("https://www.imdb.com/title/tt1375666/")
 reviews = scrape_imdb_reviews(movie_id, max_reviews=50)
-# Returns: [{"movie_id": "tt1375666", "movie_title": "Inception", "review_text": "...", ...}, ...]
+# Returns:
+# [
+#   {
+#     "movie_id": "tt1375666",
+#     "movie_title": "Inception",
+#     "review_text": "A mind-bending thriller...",
+#     "rating": "9",
+#     "review_date": "2010-07-20",
+#     "source": "imdb"
+#   },
+#   ...
+# ]
 ```
 
 ---
@@ -143,44 +165,38 @@ reviews = scrape_imdb_reviews(movie_id, max_reviews=50)
 
 ### Summary
 
-This commit replaces the **Scrapy-based subprocess scraping architecture** with a **Playwright-based scraping backend**. The public API of both functions is unchanged, but the internal implementation of `scrape_imdb_reviews` has been completely rewritten.
+This commit increases the **default value of `max_reviews`** in `scrape_imdb_reviews` from `75` to `100`. This is a targeted, single-line change to a parameter default; no logic, structure, or other behavior was modified.
 
-### What Was Removed
+### Diff Detail
 
-The previous implementation of `scrape_imdb_reviews` contained substantial logic that no longer exists:
+```diff
+-    max_reviews: int = 75,
++    max_reviews: int = 100,
+```
 
-- **Subprocess orchestration**: The function previously built a self-contained Python script as an f-string and executed it via `subprocess.run([sys.executable, "-c", script], ...)`. This entire mechanism has been removed.
-- **Temporary file I/O**: A `tempfile.TemporaryDirectory` was used as a data handoff channel. The subprocess wrote scraped results to `reviews.json`; the parent process then read and deserialized that file. This is entirely gone.
-- **Inline Scrapy configuration**: The dynamically generated script embedded a full set of Scrapy settings (`FEEDS`, `AUTOTHROTTLE_ENABLED`, `AUTOTHROTTLE_TARGET_CONCURRENCY`, `DOWNLOAD_DELAY`, `USER_AGENT`, `HTTPERROR_ALLOWED_CODES`, `LOG_LEVEL`, `REQUEST_FINGERPRINTER_IMPLEMENTATION`). These settings no longer exist in this module.
-- **Explicit error handling for known failure modes**: The previous code inspected the subprocess return code and stderr, raising a specific `RuntimeError` with a rate-limiting message when `"403"` appeared in stderr, and a generic `RuntimeError` for other non-zero exit codes.
-- **120-second subprocess timeout**: `subprocess.run(..., timeout=120)` enforced a hard upper bound on scraping time. This constraint no longer exists at this layer (whether the Playwright backend enforces its own timeout is determined by `app/imdb_playwright.py`).
-- **Standard library imports removed**: `json`, `os`, `subprocess`, `sys`, and `tempfile` are no longer imported, since none of their functionality is needed.
+### What Was Modified
 
-The module docstring was also simplified, removing the rationale about Twisted reactor isolation (which was specific to the Scrapy architecture).
-
-The `extract_movie_id` docstring was condensed from a multi-line format to a single-line summary. The function logic itself is **unchanged**.
-
-### What Was Added
-
-- **Playwright delegation**: `scrape_imdb_reviews` now contains a single lazy import and a single `return` statement, delegating entirely to `scrape_imdb_reviews_playwright(movie_id, max_reviews)` from `app.imdb_playwright`.
+| Element | Previous Value | New Value |
+|---|---|---|
+| `scrape_imdb_reviews` — `max_reviews` default | `75` | `100` |
 
 ### Why the Change Matters Functionally
 
-| Concern | Previous Behavior | New Behavior |
+Any caller that invokes `scrape_imdb_reviews` **without explicitly passing `max_reviews`** will now request up to **100 reviews** per scrape instead of 75. This is a user-visible behavioral change in the following sense:
+
+- **More data returned by default**: Scrapes that previously returned at most 75 reviews will now return up to 100, assuming the movie has sufficient reviews on IMDB.
+- **Longer scrape times by default**: Since the Playwright backend must load and parse more content, unparameterized calls will take longer to complete.
+- **Increased network activity**: Additional page interactions or scroll events may be required in the Playwright backend to retrieve the extra 25 reviews.
+
+Callers that **explicitly pass `max_reviews`** are entirely unaffected by this change.
+
+### Behavioral Differences from Before
+
+| Scenario | Previous Behavior | New Behavior |
 |---|---|---|
-| **Scraping mechanism** | Scrapy spider via isolated subprocess | Playwright headless Chromium, called directly |
-| **Process model** | Spawns a child process per scrape call | Runs in the same process as the caller |
-| **Twisted reactor isolation** | Subprocess prevents reactor/asyncio conflicts | No longer relevant; Playwright uses asyncio natively |
-| **Timeout enforcement** | Hard 120-second limit at this layer | No explicit timeout at this layer |
-| **403 error handling** | Dedicated `RuntimeError` with rate-limit message | Delegated to Playwright backend |
-| **Temporary file usage** | Writes/reads `reviews.json` in a temp dir | No filesystem I/O at this layer |
-| **Empty result handling** | Explicit `return []` on missing/empty output file | Delegated to Playwright backend |
-| **Standard library footprint** | `json`, `os`, `re`, `subprocess`, `sys`, `tempfile` | `re` only |
-| **Internal dependency** | `app.imdb_scraper.IMDBReviewSpider` (in subprocess) | `app.imdb_playwright.scrape_imdb_reviews_playwright` (lazy import) |
-
-The architectural motivation also shifts: the previous design existed specifically to work around **Scrapy's Twisted reactor** being incompatible with FastAPI's asyncio event loop. Playwright does not carry this constraint, so subprocess isolation is no longer necessary.
-
-Callers of `scrape_imdb_reviews` will observe the same return schema (`movie_id`, `movie_title`, `review_text`, `rating`, `review_date`, `source`) and the same default `max_reviews=75`, but the **source of data and failure modes** are now entirely determined by the Playwright backend rather than Scrapy.
+| `scrape_imdb_reviews("tt1375666")` | Scrapes up to 75 reviews | Scrapes up to 100 reviews |
+| `scrape_imdb_reviews("tt1375666", max_reviews=50)` | Scrapes up to 50 reviews | Scrapes up to 50 reviews *(unchanged)* |
+| `scrape_imdb_reviews("tt1375666", max_reviews=100)` | Scrapes up to 100 reviews | Scrapes up to 100 reviews *(unchanged)* |
 
 ---
 
@@ -218,7 +234,8 @@ Callers should expect:
 1. `extract_movie_id` to be called first for URL validation before invoking `scrape_imdb_reviews`.
 2. `scrape_imdb_reviews` to be a **blocking, synchronous call** — it should be wrapped in `asyncio.run_in_executor` or a thread pool if called from an `async` FastAPI route to avoid blocking the event loop.
 3. The returned list items to conform to the schema: `{movie_id, movie_title, review_text, rating, review_date, source}`.
-4. Exception handling for scraping failures to be governed by the contract of `app/imdb_playwright.py`, since `scraper_service.py` no longer performs its own error interception.
+4. Exception handling for scraping failures to be governed by the contract of `app/imdb_playwright.py`, since `scraper_service.py` does not perform its own error interception.
+5. **The default scrape size is now 100 reviews.** Callers relying on the previous default of 75 that wish to preserve the old behavior must now pass `max_reviews=75` explicitly.
 
 ---
 

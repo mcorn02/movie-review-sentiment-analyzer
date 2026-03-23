@@ -16,7 +16,7 @@ def extract_movie_id(imdb_url: str) -> str:
 
 def scrape_imdb_reviews(
     movie_id: str,
-    max_reviews: int = 75,
+    max_reviews: int = 100,
 ) -> list[dict]:
     """
     Scrape IMDB reviews for a movie using Playwright (headless Chromium).
